@@ -41,6 +41,7 @@ import com.threesa.billing.ui.theme.*
 
 @Composable
 fun InventoryScreen(
+    onNavigateToProfile: () -> Unit = {},
     viewModel: InventoryViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -68,7 +69,7 @@ fun InventoryScreen(
             .background(BackgroundCream)
             .padding(bottom = 90.dp) // Fixed height before reaching floating bottom nav bar
     ) {
-        AppHeader()
+        AppHeader(onAvatarClick = onNavigateToProfile)
         
         Box(modifier = Modifier.fillMaxSize().weight(1f)) {
             if (uiState.isLoading) {

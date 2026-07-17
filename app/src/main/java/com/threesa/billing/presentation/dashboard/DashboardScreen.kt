@@ -46,6 +46,7 @@ import java.util.Locale
 
 @Composable
 fun DashboardScreen(
+    onNavigateToProfile: () -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -56,7 +57,7 @@ fun DashboardScreen(
             .fillMaxSize()
             .background(BackgroundCream)
     ) {
-        AppHeader()
+        AppHeader(onAvatarClick = onNavigateToProfile)
         Box(
             modifier = Modifier.fillMaxSize()
         ) {

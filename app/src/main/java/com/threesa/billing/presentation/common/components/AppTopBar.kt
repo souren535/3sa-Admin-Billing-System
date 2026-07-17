@@ -23,6 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.clickable
 import androidx.compose.ui.unit.sp
 import com.threesa.billing.ui.theme.BackgroundCream
 import com.threesa.billing.ui.theme.BorderLight
@@ -31,6 +32,7 @@ import com.threesa.billing.ui.theme.TextSecondary
 
 @Composable
 fun AppHeader(
+    onAvatarClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -49,7 +51,8 @@ fun AppHeader(
                     .size(36.dp)
                     .clip(CircleShape)
                     .background(BackgroundCream)
-                    .border(1.dp, BorderLight, CircleShape),
+                    .border(1.dp, BorderLight, CircleShape)
+                    .clickable(onClick = onAvatarClick),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(

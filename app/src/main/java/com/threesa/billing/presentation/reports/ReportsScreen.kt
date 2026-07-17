@@ -53,6 +53,7 @@ import java.util.Date
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportsScreen(
+    onNavigateToProfile: () -> Unit = {},
     viewModel: ReportsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -88,7 +89,7 @@ fun ReportsScreen(
             .background(BackgroundCream)
             .padding(bottom = 90.dp) // Fixed height before bottom navigation bar
     ) {
-        AppHeader()
+        AppHeader(onAvatarClick = onNavigateToProfile)
 
         Box(modifier = Modifier.fillMaxSize().weight(1f)) {
             if (uiState.isLoading) {

@@ -21,7 +21,7 @@ fun NavGraph() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.hierarchy?.firstOrNull()?.route
 
-    val showBottomBar = currentRoute != Screen.Login.route
+    val showBottomBar = currentRoute != Screen.Login.route && currentRoute != Screen.Profile.route
 
     Scaffold(
         bottomBar = {
@@ -47,16 +47,34 @@ fun NavGraph() {
                 )
             }
             composable(route = Screen.Dashboard.route) {
-                DashboardScreen()
+                DashboardScreen(
+                    onNavigateToProfile = { navController.navigate(Screen.Profile.route) }
+                )
             }
             composable(route = Screen.PettyCash.route) {
-                PettyCashScreen()
+                PettyCashScreen(
+                    onNavigateToProfile = { navController.navigate(Screen.Profile.route) }
+                )
             }
             composable(Screen.Inventory.route) {
-                InventoryScreen()
+                InventoryScreen(
+                    onNavigateToProfile = { navController.navigate(Screen.Profile.route) }
+                )
             }
             composable(Screen.Reports.route) {
-                com.threesa.billing.presentation.reports.ReportsScreen()
+                com.threesa.billing.presentation.reports.ReportsScreen(
+                    onNavigateToProfile = { navController.navigate(Screen.Profile.route) }
+                )
+            }
+            composable(Screen.Profile.route) {
+                com.threesa.billing.presentation.profile.ProfileScreen(
+                    onBackClick = { navController.popBackStack() },
+                    onLogoutClick = {
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                )
             }
 
         }

@@ -31,6 +31,7 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PettyCashScreen(
+    onNavigateToProfile: () -> Unit = {},
     viewModel: PettyCashViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -44,7 +45,7 @@ fun PettyCashScreen(
             .fillMaxSize()
             .background(BackgroundCream)
     ) {
-        AppHeader()
+        AppHeader(onAvatarClick = onNavigateToProfile)
         Box(modifier = Modifier.fillMaxSize().weight(1f)) {
             if (uiState.isLoading) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
