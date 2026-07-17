@@ -11,7 +11,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.threesa.billing.presentation.dashboard.DashboardScreen
+import com.threesa.billing.presentation.inventory.InventoryScreen
 import com.threesa.billing.presentation.login.LoginScreen
+import com.threesa.billing.presentation.pettycash.PettyCashScreen
 
 @Composable
 fun NavGraph() {
@@ -48,13 +50,13 @@ fun NavGraph() {
                 DashboardScreen()
             }
             composable(route = Screen.PettyCash.route) {
-                Screen.PettyCash
+                PettyCashScreen()
             }
             composable(Screen.Inventory.route) {
-                // placeholder until next step
+                InventoryScreen()
             }
             composable(Screen.Reports.route) {
-                // placeholder until next step
+                com.threesa.billing.presentation.reports.ReportsScreen()
             }
 
         }

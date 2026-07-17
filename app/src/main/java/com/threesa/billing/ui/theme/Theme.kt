@@ -53,7 +53,7 @@ private val DarkColors = darkColorScheme(
 
 @Composable
 fun BillingSystemTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = false,
     // Dynamic color (Material You) is disabled by default so the app always
     // shows the RetailAdmin/BillingSystem brand palette instead of the user's
     // wallpaper-derived colors. Flip to true if you want Android 12+ theming.
