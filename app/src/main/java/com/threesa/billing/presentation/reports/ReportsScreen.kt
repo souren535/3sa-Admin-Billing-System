@@ -20,9 +20,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -50,18 +54,31 @@ import java.util.Locale
 import java.text.SimpleDateFormat
 import java.util.Date
 
+import androidx.compose.ui.platform.LocalContext
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportsScreen(
     onNavigateToProfile: () -> Unit = {},
+    onExportPdfClick: (storeId: String) -> Unit = {},
     viewModel: ReportsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val downloadingInvoiceId by viewModel.downloadingInvoiceId.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     val listState = rememberLazyListState()
     var showTopSection by remember { mutableStateOf(true) }
     var showDatePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState()
+    
+    @OptIn(ExperimentalLayoutApi::class)
+    val isImeVisible = WindowInsets.isImeVisible
+    LaunchedEffect(isImeVisible) {
+        if (isImeVisible) {
+            showTopSection = false
+        }
+    }
     
     // Format selected date
     val selectedDate = remember(datePickerState.selectedDateMillis) {
@@ -97,6 +114,20 @@ fun ReportsScreen(
                 return@Box
             }
 
+            if (uiState.errorMessage != null && uiState.data == null) {
+                Column(
+                    modifier = Modifier.align(Alignment.Center).padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(text = uiState.errorMessage!!, color = Color.Red, textAlign = TextAlign.Center)
+                    Spacer(Modifier.height(8.dp))
+                    Button(onClick = { viewModel.loadReports(uiState.selectedStoreId ?: "1") }) {
+                        Text("Retry")
+                    }
+                }
+                return@Box
+            }
+
             val data = uiState.data ?: return@Box
             val invoices = viewModel.filteredInvoices()
 
@@ -112,7 +143,17 @@ fun ReportsScreen(
                 ) {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Spacer(Modifier.height(16.dp))
-                        StoreSwitcherBar(storeName = data.storeName, onSwitchStoreClick = {})
+                        
+                        val selectedStoreName = uiState.stores.find { it.id.toString() == uiState.selectedStoreId }?.name
+                            ?: uiState.data?.storeName ?: "Select Store"
+
+                        StoreSwitcherBar(
+                            storeName = selectedStoreName,
+                            stores = uiState.stores,
+                            onStoreSelected = { store ->
+                                viewModel.onStoreSelected(store.id?.toString() ?: "")
+                            }
+                        )
                         Spacer(Modifier.height(16.dp))
 
                         // Action Row: Date Picker & Export PDF
@@ -134,7 +175,7 @@ fun ReportsScreen(
                             }
 
                             OutlinedButton(
-                                onClick = { /* TODO */ },
+                                onClick = { onExportPdfClick(uiState.selectedStoreId ?: "1") },
                                 shape = MaterialTheme.shapes.small,
                                 border = androidx.compose.foundation.BorderStroke(1.dp, PeachBg),
                                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
@@ -178,28 +219,50 @@ fun ReportsScreen(
                 Spacer(Modifier.height(24.dp))
 
                 // Tabs and Sort
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
+                // Tabs Section
+                ReportsTabs(
+                    selectedTab = uiState.selectedTab,
+                    onTabSelect = viewModel::onTabSelect,
+                    paidCount = data.paidCount,
+                    unpaidCount = data.unpaidCount,
+                    totalCount = data.totalInvoices
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                // Search Bar next line of All paid unpaid
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .pointerInput(Unit) {
+                            detectTapGestures {
+                                showTopSection = false
+                            }
+                        }
                 ) {
-                    ReportsTabs(
-                        selectedTab = uiState.selectedTab,
-                        onTabSelect = viewModel::onTabSelect,
-                        paidCount = data.paidCount,
-                        unpaidCount = data.unpaidCount,
-                        totalCount = data.totalInvoices
-                    )
-                    IconButton(
-                        onClick = { /* TODO */ },
+                    OutlinedTextField(
+                        value = uiState.searchQuery,
+                        onValueChange = viewModel::onSearchChange,
+                        placeholder = { Text("Search invoices by ID, customer name...") },
+                        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                        trailingIcon = {
+                            if (uiState.searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { viewModel.onSearchChange("") }) {
+                                    Icon(Icons.Filled.Clear, contentDescription = "Clear search")
+                                }
+                            }
+                        },
+                        singleLine = true,
                         modifier = Modifier
-                            .background(ChipGray, MaterialTheme.shapes.small)
-                            .size(36.dp)
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = "Sort", tint = TextPrimary)
-                    }
+                            .fillMaxWidth()
+                            .onFocusChanged { focusState ->
+                                if (focusState.isFocused) {
+                                    showTopSection = false
+                                }
+                            }
+                    )
                 }
-                HorizontalDivider(color = BorderLight)
+
                 Spacer(Modifier.height(16.dp))
 
                 Column(
@@ -213,12 +276,13 @@ fun ReportsScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(SurfaceMuted)
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                            .padding(horizontal = 12.dp, vertical = 12.dp)
                     ) {
-                        Text("Invoice No.", fontSize = 12.sp, color = TextSecondary, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1.8f))
-                        Text("Customer Details", fontSize = 12.sp, color = TextSecondary, fontWeight = FontWeight.Medium, modifier = Modifier.weight(2.2f))
-                        Text("Total (₹)", fontSize = 12.sp, color = TextSecondary, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1.2f), textAlign = TextAlign.End)
-                        Text("Status", fontSize = 12.sp, color = TextSecondary, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1.3f), textAlign = TextAlign.End)
+                        Spacer(Modifier.width(32.dp))
+                        Text("Invoice No.", fontSize = 12.sp, color = TextSecondary, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1.6f))
+                        Text("Customer Details", fontSize = 12.sp, color = TextSecondary, fontWeight = FontWeight.Medium, modifier = Modifier.weight(2.0f))
+                        Text("Total (₹)", fontSize = 12.sp, color = TextSecondary, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1.2f), textAlign = TextAlign.Center)
+                        Text("Status", fontSize = 12.sp, color = TextSecondary, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1.1f), textAlign = TextAlign.End)
                     }
                     HorizontalDivider(color = BorderLight)
                     
@@ -231,7 +295,11 @@ fun ReportsScreen(
                     ) {
                         itemsIndexed(invoices, key = { _, inv -> inv.id }) { index, invoice ->
                             Box(modifier = Modifier.background(SurfaceWhite)) {
-                                InvoiceRow(invoice)
+                                InvoiceRow(
+                                    invoice = invoice,
+                                    isDownloading = downloadingInvoiceId == invoice.id,
+                                    onPrintClick = { viewModel.printInvoice(context, invoice.id) }
+                                )
                             }
                             HorizontalDivider(color = BorderLight)
                         }

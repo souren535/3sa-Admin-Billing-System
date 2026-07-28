@@ -61,18 +61,13 @@ fun DashboardScreen(
         Box(
             modifier = Modifier.fillMaxSize()
         ) {
-            when {
-                uiState.isLoading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                }
-                uiState.summary != null -> {
-                    val summary = uiState.summary!!
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp)
-                    ) {
-
-                    item {
+            if (uiState.summary != null) {
+                val summary = uiState.summary!!
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp)
+                ) {
+                    item(key = "summary_cards") {
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                             modifier = Modifier.fillMaxWidth()
@@ -93,21 +88,11 @@ fun DashboardScreen(
                                 cardBgColor = SuccessGreenBg,
                                 modifier = Modifier.weight(1f)
                             )
-                            /*
-                            SummaryCard(
-                                label = "Petty Cash",
-                                value = rupeeFormat.format(summary.pettyCash).replace(".00", ""),
-                                icon = Icons.Default.AccountBalanceWallet,
-                                iconColor = WarningAmber,
-                                cardBgColor = WarningAmberBg,
-                                modifier = Modifier.weight(1f)
-                            )
-                            */
                         }
                         Spacer(Modifier.height(28.dp))
                     }
 
-                    item {
+                    item(key = "daily_summary_header") {
                         Text(
                             text = "Daily Summary",
                             fontSize = 28.sp,
@@ -117,7 +102,7 @@ fun DashboardScreen(
                         Spacer(Modifier.height(16.dp))
                     }
 
-                    items(summary.stores, key = { it.id }) { store ->
+                    items(summary.stores, key = { "store_${it.id}" }) { store ->
                         StoreExpandableCard(
                             store = store,
                             isExpanded = uiState.expandedStoreId == store.id,
@@ -127,18 +112,24 @@ fun DashboardScreen(
                         Spacer(Modifier.height(12.dp))
                     }
 
-                    item { Spacer(Modifier.height(80.dp)) }
-
+                    item(key = "bottom_spacer") { Spacer(Modifier.height(80.dp)) }
                 }
             }
 
-            uiState.errorMessage != null -> {
+            if (uiState.isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center),
+                    color = PrimaryOrange
+                )
+            }
+
+            if (uiState.errorMessage != null && uiState.summary == null) {
                 Text(
                     uiState.errorMessage ?: "Something went wrong",
-                    modifier = Modifier.align(Alignment.Center)
+                    modifier = Modifier.align(Alignment.Center),
+                    color = MaterialTheme.colorScheme.error
                 )
             }
         }
     }
-}
 }

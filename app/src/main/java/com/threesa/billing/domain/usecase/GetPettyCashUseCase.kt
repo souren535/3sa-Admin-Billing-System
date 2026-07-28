@@ -7,7 +7,6 @@ import javax.inject.Inject
 class GetPettyCashUseCase @Inject constructor(
     private val repository: PettyCashRepository
 ) {
-    suspend operator fun invoke(storeId: String = "store_1"): Result<PettyCashData> =
+    suspend operator fun invoke(storeId: String): Result<PettyCashData> =
         repository.getPettyCash(storeId)
 }
-

@@ -11,10 +11,10 @@ data class Product(
 )
 
 data class InventoryData(
-    val storeName: String,
-    val totalProducts: Int,
-    val totalStock: Int,
-    val lowStockCount: Int,
-    val outOfStockCount: Int,
-    val products: List<Product>
+    val storeName: String = "",
+    val totalProducts: Int = 0,
+    val totalStock: Int = 0,
+    val lowStockCount: Int = 0,
+    val outOfStockCount: Int = 0,
+    val products: List<Product> = emptyList()
 )

@@ -7,7 +7,7 @@ import javax.inject.Inject
 class GetReportsUseCase @Inject constructor(
     private val repository: ReportsRepository
 ) {
-    suspend operator fun invoke(): Result<ReportsData> {
-        return repository.getReports()
+    suspend operator fun invoke(storeId: String): Result<ReportsData> {
+        return repository.getReports(storeId)
     }
 }

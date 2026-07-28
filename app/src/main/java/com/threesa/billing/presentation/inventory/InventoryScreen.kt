@@ -39,6 +39,12 @@ import com.threesa.billing.presentation.inventory.components.ProductRow
 import com.threesa.billing.presentation.inventory.components.StatCard
 import com.threesa.billing.ui.theme.*
 
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.runtime.LaunchedEffect
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun InventoryScreen(
     onNavigateToProfile: () -> Unit = {},
@@ -49,6 +55,13 @@ fun InventoryScreen(
 
     val listState = rememberLazyListState()
     var showTopSection by remember { mutableStateOf(true) }
+
+    val isImeVisible = WindowInsets.isImeVisible
+    LaunchedEffect(isImeVisible) {
+        if (isImeVisible) {
+            showTopSection = false
+        }
+    }
 
     val nestedScrollConnection = remember {
         object : NestedScrollConnection {
@@ -76,6 +89,21 @@ fun InventoryScreen(
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 return@Box
             }
+
+            if (uiState.errorMessage != null) {
+                Column(
+                    modifier = Modifier.align(Alignment.Center).padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(text = uiState.errorMessage!!, color = Color.Red, textAlign = TextAlign.Center)
+                    Spacer(Modifier.height(8.dp))
+                    Button(onClick = { uiState.selectedStoreId?.let { viewModel.loadInventory(it) } }) {
+                        Text("Retry")
+                    }
+                }
+                return@Box
+            }
+
             val data = uiState.data ?: return@Box
             val products = viewModel.filteredProducts()
 
@@ -91,7 +119,16 @@ fun InventoryScreen(
                 ) {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Spacer(Modifier.height(16.dp))
-                        StoreSwitcherBar(storeName = data.storeName, onSwitchStoreClick = {})
+                        val selectedStoreName = uiState.stores.find { it.id.toString() == uiState.selectedStoreId }?.name
+                            ?: uiState.data?.storeName ?: "Select Store"
+
+                        StoreSwitcherBar(
+                            storeName = selectedStoreName,
+                            stores = uiState.stores,
+                            onStoreSelected = { store ->
+                                viewModel.onStoreSelected(store.id?.toString() ?: "")
+                            }
+                        )
                         Spacer(Modifier.height(16.dp))
 
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
@@ -130,34 +167,36 @@ fun InventoryScreen(
                 )
                 Spacer(Modifier.height(16.dp))
 
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .pointerInput(Unit) {
+                            detectTapGestures {
+                                showTopSection = false
+                            }
+                        }
+                ) {
                     OutlinedTextField(
                         value = uiState.searchQuery,
                         onValueChange = viewModel::onSearchChange,
                         placeholder = { Text("Search products...") },
                         leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                        trailingIcon = {
+                            if (uiState.searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { viewModel.onSearchChange("") }) {
+                                    Icon(Icons.Filled.Clear, contentDescription = "Clear search")
+                                }
+                            }
+                        },
                         singleLine = true,
-                        modifier = Modifier.weight(1f).height(56.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .onFocusChanged { focusState ->
+                                if (focusState.isFocused) {
+                                    showTopSection = false
+                                }
+                            }
                     )
-                    Box {
-                        OutlinedButton(
-                            onClick = { categoryExpanded = true },
-                            shape = MaterialTheme.shapes.small,
-                            modifier = Modifier.height(56.dp)
-                        ) {
-                            Text("Category", color = TextPrimary)
-                            Spacer(Modifier.width(4.dp))
-                            Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null, tint = TextPrimary)
-                        }
-                        DropdownMenu(
-                            expanded = categoryExpanded,
-                            onDismissRequest = { categoryExpanded = false }
-                        ) {
-                            DropdownMenuItem(text = { Text("All Categories") }, onClick = { categoryExpanded = false })
-                            DropdownMenuItem(text = { Text("Beverages") }, onClick = { categoryExpanded = false })
-                            DropdownMenuItem(text = { Text("Snacks") }, onClick = { categoryExpanded = false })
-                        }
-                    }
                 }
                 Spacer(Modifier.height(12.dp))
 

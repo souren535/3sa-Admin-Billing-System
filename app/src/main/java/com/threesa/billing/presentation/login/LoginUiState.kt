@@ -1,8 +1,8 @@
 package com.threesa.billing.presentation.login
 
 data class LoginUiState(
-    val email: String = "admin@example.com",
-    val password: String = "password123",
+    val email: String = "",
+    val password: String = "",
     val isPasswordVisible: Boolean = false,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
@@ -10,6 +10,6 @@ data class LoginUiState(
 ) {
 
     val isFormValid: Boolean
-        get() = true // Always valid for dummy testing
+        get() = email.isNotBlank() && password.isNotBlank()
 }
 

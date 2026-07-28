@@ -41,7 +41,8 @@ fun HistoricalPettyCashScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = SurfaceWhite)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = SurfaceWhite),
+                windowInsets = WindowInsets(0, 0, 0, 0)
             )
         },
         containerColor = BackgroundCream
@@ -63,8 +64,6 @@ fun HistoricalPettyCashScreen(
                 }
             } else {
                 Column(modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
-                    Spacer(Modifier.height(16.dp))
-                    
                     Row(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,

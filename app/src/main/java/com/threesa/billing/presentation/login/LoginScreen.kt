@@ -13,6 +13,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -71,12 +74,15 @@ fun LoginScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(BackgroundCream)
-            .padding(horizontal = 24.dp),
+            .padding(horizontal = 24.dp)
+            .imePadding(),
         contentAlignment = Alignment.Center
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
@@ -232,7 +238,9 @@ fun LoginScreen(
                         shape = RoundedCornerShape(15.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = PrimaryOrange,
-                            disabledContainerColor = PrimaryOrange.copy(alpha = 0.6f)
+                            contentColor = Color.White,
+                            disabledContainerColor = PrimaryOrange,
+                            disabledContentColor = Color.White
                         ),
                         modifier = Modifier
                             .fillMaxWidth()

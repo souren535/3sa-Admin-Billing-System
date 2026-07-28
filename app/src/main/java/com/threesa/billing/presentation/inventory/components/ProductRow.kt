@@ -36,13 +36,6 @@ fun ProductRow(product: Product) {
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            Text(
-                product.category,
-                fontSize = 12.sp,
-                color = TextSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
         }
         Text(
             "${product.stock}",

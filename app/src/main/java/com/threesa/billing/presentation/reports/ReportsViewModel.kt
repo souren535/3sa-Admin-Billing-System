@@ -1,10 +1,13 @@
 package com.threesa.billing.presentation.reports
 
+import android.content.Context
+import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.threesa.billing.domain.model.Invoice
-import com.threesa.billing.domain.model.InvoiceStatus
+import com.threesa.billing.domain.repository.ReportsRepository
+import com.threesa.billing.domain.repository.UtilsRepository
 import com.threesa.billing.domain.usecase.GetReportsUseCase
+import com.threesa.billing.utils.PdfDownloader
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,20 +17,45 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ReportsViewModel @Inject constructor(
-    private val getReportsUseCase: GetReportsUseCase
+    private val getReportsUseCase: GetReportsUseCase,
+    private val reportsRepository: ReportsRepository,
+    private val utilsRepository: UtilsRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ReportsUiState())
     val uiState: StateFlow<ReportsUiState> = _uiState
 
+    private val _downloadingInvoiceId = MutableStateFlow<String?>(null)
+    val downloadingInvoiceId: StateFlow<String?> = _downloadingInvoiceId
+
     init {
-        loadData()
+        loadStores()
+        loadReports("1")
     }
 
-    fun loadData() {
+    private fun loadStores() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            getReportsUseCase().fold(
+            utilsRepository.getStores().fold(
+                onSuccess = { stores ->
+                    val firstStoreId = stores.firstOrNull()?.id?.toString() ?: "1"
+                    _uiState.update { it.copy(stores = stores, selectedStoreId = firstStoreId) }
+                    if (firstStoreId != "1" && _uiState.value.data == null) {
+                        loadReports(firstStoreId)
+                    }
+                },
+                onFailure = { e ->
+                    if (_uiState.value.data == null) {
+                        _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
+                    }
+                }
+            )
+        }
+    }
+
+    fun loadReports(storeId: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            getReportsUseCase(storeId).fold(
                 onSuccess = { data ->
                     _uiState.update { it.copy(isLoading = false, data = data) }
                 },
@@ -38,16 +66,59 @@ class ReportsViewModel @Inject constructor(
         }
     }
 
+    fun printInvoice(context: Context, invoiceId: String) {
+        viewModelScope.launch {
+            _downloadingInvoiceId.value = invoiceId
+            reportsRepository.printInvoice(invoiceId).fold(
+                onSuccess = { dto ->
+                    _downloadingInvoiceId.value = null
+                    val base64 = dto.base64_data
+                    if (!base64.isNullOrBlank()) {
+                        val fileName = dto.file_name ?: "Invoice_$invoiceId.pdf"
+                        val success = PdfDownloader.saveBase64PdfToDownloads(context, fileName, base64)
+                        if (success) {
+                            Toast.makeText(context, "Saved $fileName to Downloads folder", Toast.LENGTH_LONG).show()
+                        } else {
+                            Toast.makeText(context, "Failed to save invoice PDF", Toast.LENGTH_SHORT).show()
+                        }
+                    } else {
+                        Toast.makeText(context, "Invoice PDF data is empty", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                onFailure = { e ->
+                    _downloadingInvoiceId.value = null
+                    Toast.makeText(context, e.message ?: "Failed to download invoice", Toast.LENGTH_SHORT).show()
+                }
+            )
+        }
+    }
+
+    fun onStoreSelected(storeId: String) {
+        _uiState.update { it.copy(selectedStoreId = storeId) }
+        loadReports(storeId)
+    }
+
     fun onTabSelect(tab: ReportsTab) {
         _uiState.update { it.copy(selectedTab = tab) }
     }
 
-    fun filteredInvoices(): List<Invoice> {
-        val currentData = _uiState.value.data ?: return emptyList()
-        return when (_uiState.value.selectedTab) {
-            ReportsTab.ALL -> currentData.invoices
-            ReportsTab.PAID -> currentData.invoices.filter { it.status == InvoiceStatus.PAID }
-            ReportsTab.UNPAID -> currentData.invoices.filter { it.status == InvoiceStatus.UNPAID }
+    fun onSearchChange(query: String) {
+        _uiState.update { it.copy(searchQuery = query) }
+    }
+
+    fun filteredInvoices() = _uiState.value.data?.invoices.orEmpty().filter { invoice ->
+        val matchesTab = when (_uiState.value.selectedTab) {
+            ReportsTab.ALL -> true
+            ReportsTab.PAID -> invoice.status == com.threesa.billing.domain.model.InvoiceStatus.PAID
+            ReportsTab.UNPAID -> invoice.status == com.threesa.billing.domain.model.InvoiceStatus.UNPAID
         }
+        val query = _uiState.value.searchQuery.trim().lowercase()
+        val matchesSearch = query.isEmpty() ||
+                invoice.id.lowercase().contains(query) ||
+                invoice.customerName.lowercase().contains(query) ||
+                invoice.customerPhone.lowercase().contains(query) ||
+                (invoice.paymentMethod?.lowercase()?.contains(query) == true)
+
+        matchesTab && matchesSearch
     }
 }
