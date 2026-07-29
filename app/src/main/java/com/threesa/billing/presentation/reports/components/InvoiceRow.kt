@@ -30,7 +30,7 @@ import java.util.Locale
 
 private fun getPaymentMethodColor(method: String): Color {
     return when (method.lowercase(Locale.getDefault())) {
-        "online" -> Color(0xFF2563EB) // Blue
+        "online", "upi" -> Color(0xFF2563EB) // Blue
         "cash" -> MintIcon           // Green
         "card" -> LavenderIcon       // Purple
         else -> TextSecondary
@@ -49,7 +49,7 @@ fun InvoiceRow(
     onPrintClick: () -> Unit = {}
 ) {
     Row(
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.Top,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 12.dp)
@@ -58,7 +58,9 @@ fun InvoiceRow(
         IconButton(
             onClick = onPrintClick,
             enabled = !isDownloading,
-            modifier = Modifier.size(32.dp).padding(end = 4.dp)
+            modifier = Modifier
+                .size(32.dp)
+                .padding(end = 4.dp)
         ) {
             if (isDownloading) {
                 CircularProgressIndicator(
@@ -95,7 +97,7 @@ fun InvoiceRow(
             }
         }
 
-        // 4. Total (₹) & Payment Method (Centered on next line under Total)
+        // 4. Total (₹) & Payment Method (Centered under Total)
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.weight(1.2f)
@@ -108,9 +110,8 @@ fun InvoiceRow(
                 textAlign = TextAlign.Center
             )
             invoice.paymentMethod?.let { method ->
-                Spacer(Modifier.height(2.dp))
                 Text(
-                    text = method,
+                    text = method.uppercase(Locale.getDefault()),
                     fontSize = 11.sp,
                     color = getPaymentMethodColor(method),
                     fontWeight = FontWeight.SemiBold,
@@ -122,7 +123,7 @@ fun InvoiceRow(
         // 5. Status Badge (End Box on Far Right)
         Row(
             horizontalArrangement = Arrangement.End,
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.Top,
             modifier = Modifier.weight(1.1f)
         ) {
             StatusBadge(

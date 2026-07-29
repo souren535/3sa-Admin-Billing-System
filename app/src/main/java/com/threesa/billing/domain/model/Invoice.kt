@@ -6,6 +6,7 @@ enum class InvoiceStatus {
 
 data class Invoice(
     val id: String,
+    val rawId: String = id,
     val date: String,
     val time: String,
     val customerName: String,

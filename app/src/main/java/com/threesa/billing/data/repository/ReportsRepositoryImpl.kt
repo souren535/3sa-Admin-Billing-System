@@ -123,7 +123,8 @@ class ReportsRepositoryImpl @Inject constructor(
     }
 
     private fun InvoiceDto.toDomain(): Invoice {
-        val invoiceId = invoice_number ?: id?.let { "INV-$it" } ?: "INV-00"
+        val rawInvoiceId = id?.toString() ?: invoice_number ?: "0"
+        val displayInvoiceId = invoice_number ?: id?.let { "INV-$it" } ?: "INV-00"
         val statusEnum = when (status?.lowercase()) {
             "unpaid", "pending", "due" -> InvoiceStatus.UNPAID
             "paid" -> InvoiceStatus.PAID
@@ -135,7 +136,8 @@ class ReportsRepositoryImpl @Inject constructor(
         val displayTime = time ?: if ((createdAt?.length ?: 0) >= 16) createdAt?.substring(11, 16) ?: "" else ""
 
         return Invoice(
-            id = invoiceId,
+            id = displayInvoiceId,
+            rawId = rawInvoiceId,
             date = displayDate,
             time = displayTime,
             customerName = customer_name ?: "Walk-in Customer",

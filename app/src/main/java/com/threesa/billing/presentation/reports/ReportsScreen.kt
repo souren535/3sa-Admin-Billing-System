@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import com.threesa.billing.presentation.common.components.MessageDialog
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -181,7 +182,7 @@ fun ReportsScreen(
                             }
 
                             OutlinedButton(
-                                onClick = { onExportPdfClick(uiState.selectedStoreId ?: "1") },
+                                onClick = { viewModel.exportPdf(context, uiState.selectedStoreId ?: "1") },
                                 shape = MaterialTheme.shapes.small,
                                 border = androidx.compose.foundation.BorderStroke(1.dp, PeachBg),
                                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
@@ -224,15 +225,37 @@ fun ReportsScreen(
 
                 Spacer(Modifier.height(24.dp))
 
-                // Tabs and Sort
-                // Tabs Section
-                ReportsTabs(
-                    selectedTab = uiState.selectedTab,
-                    onTabSelect = viewModel::onTabSelect,
-                    paidCount = data.paidCount,
-                    unpaidCount = data.unpaidCount,
-                    totalCount = data.totalInvoices
-                )
+                // Tabs and Calendar Date Filter
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    ReportsTabs(
+                        selectedTab = uiState.selectedTab,
+                        onTabSelect = viewModel::onTabSelect,
+                        paidCount = data.paidCount,
+                        unpaidCount = data.unpaidCount,
+                        totalCount = data.totalInvoices
+                    )
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (!uiState.selectedDate.isNullOrBlank()) {
+                            AssistChip(
+                                onClick = { viewModel.onDateSelected(null) },
+                                label = { Text(uiState.selectedDate!!, fontSize = 11.sp) },
+                                trailingIcon = {
+                                    Icon(Icons.Filled.Close, contentDescription = "Clear date filter", modifier = Modifier.size(12.dp))
+                                },
+                                colors = AssistChipDefaults.assistChipColors(containerColor = PeachBg)
+                            )
+                            Spacer(Modifier.width(4.dp))
+                        }
+                        IconButton(onClick = { showDatePicker = true }, modifier = Modifier.size(36.dp)) {
+                            Icon(Icons.Filled.CalendarMonth, contentDescription = "Pick Date", tint = PrimaryOrange)
+                        }
+                    }
+                }
 
                 Spacer(Modifier.height(12.dp))
 
@@ -299,12 +322,12 @@ fun ReportsScreen(
                             .fillMaxSize()
                             .nestedScroll(nestedScrollConnection)
                     ) {
-                        itemsIndexed(invoices, key = { _, inv -> inv.id }) { index, invoice ->
+                        itemsIndexed(invoices, key = { index, inv -> "${inv.rawId}_${inv.id}_$index" }) { index, invoice ->
                             Box(modifier = Modifier.background(SurfaceWhite)) {
                                 InvoiceRow(
                                     invoice = invoice,
-                                    isDownloading = downloadingInvoiceId == invoice.id,
-                                    onPrintClick = { viewModel.printInvoice(context, invoice.id) }
+                                    isDownloading = downloadingInvoiceId == invoice.rawId || downloadingInvoiceId == invoice.id,
+                                    onPrintClick = { viewModel.printInvoice(context, invoice.rawId) }
                                 )
                             }
                             HorizontalDivider(color = BorderLight)
@@ -319,7 +342,17 @@ fun ReportsScreen(
             DatePickerDialog(
                 onDismissRequest = { showDatePicker = false },
                 confirmButton = {
-                    TextButton(onClick = { showDatePicker = false }) {
+                    TextButton(onClick = {
+                        val selectedMillis = datePickerState.selectedDateMillis
+                        if (selectedMillis != null) {
+                            val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).apply {
+                                timeZone = java.util.TimeZone.getTimeZone("UTC")
+                            }
+                            val formattedDate = sdf.format(java.util.Date(selectedMillis))
+                            viewModel.onDateSelected(formattedDate)
+                        }
+                        showDatePicker = false
+                    }) {
                         Text("OK")
                     }
                 },
@@ -331,6 +364,15 @@ fun ReportsScreen(
             ) {
                 DatePicker(state = datePickerState)
             }
+        }
+
+        uiState.dialogState?.let { dialog ->
+            MessageDialog(
+                isSuccess = dialog.isSuccess,
+                title = dialog.title,
+                message = dialog.message,
+                onDismiss = viewModel::dismissDialog
+            )
         }
     }
 }

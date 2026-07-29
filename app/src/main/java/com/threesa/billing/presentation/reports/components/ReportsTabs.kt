@@ -25,9 +25,13 @@ fun ReportsTabs(
     onTabSelect: (ReportsTab) -> Unit,
     paidCount: Int,
     unpaidCount: Int,
-    totalCount: Int
+    totalCount: Int,
+    modifier: Modifier = Modifier
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(24.dp),
+        modifier = modifier
+    ) {
         ReportTabItem(
             text = "All ($totalCount)",
             selected = selectedTab == ReportsTab.ALL,

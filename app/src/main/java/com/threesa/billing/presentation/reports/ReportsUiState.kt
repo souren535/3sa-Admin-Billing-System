@@ -7,6 +7,12 @@ enum class ReportsTab {
     ALL, PAID, UNPAID
 }
 
+data class ReportsDialogState(
+    val isSuccess: Boolean,
+    val title: String,
+    val message: String
+)
+
 data class ReportsUiState(
     val isLoading: Boolean = false,
     val data: ReportsData? = null,
@@ -14,5 +20,7 @@ data class ReportsUiState(
     val selectedStoreId: String? = null,
     val errorMessage: String? = null,
     val selectedTab: ReportsTab = ReportsTab.ALL,
-    val searchQuery: String = ""
+    val searchQuery: String = "",
+    val selectedDate: String? = null,
+    val dialogState: ReportsDialogState? = null
 )

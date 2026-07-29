@@ -22,11 +22,13 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.threesa.billing.presentation.common.components.BadgeStyle
+import com.threesa.billing.presentation.common.components.MessageDialog
 import com.threesa.billing.presentation.common.components.StatusBadge
 import com.threesa.billing.ui.theme.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -41,22 +43,6 @@ fun ProfileScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scrollState = rememberScrollState()
-
-    LaunchedEffect(uiState.successMessage) {
-        uiState.successMessage?.let { msg ->
-            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
-            viewModel.clearMessages()
-        }
-    }
-
-    LaunchedEffect(uiState.errorMessage) {
-        uiState.errorMessage?.let { msg ->
-            if (!uiState.showCreateUserModal && !uiState.showChangePasswordModal) {
-                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-                viewModel.clearMessages()
-            }
-        }
-    }
 
     Scaffold(
         topBar = {
@@ -271,6 +257,22 @@ fun ProfileScreen(
                     }
                 )
             }
+
+            if (!uiState.successMessage.isNullOrBlank()) {
+                MessageDialog(
+                    isSuccess = true,
+                    title = "Success",
+                    message = uiState.successMessage!!,
+                    onDismiss = viewModel::clearMessages
+                )
+            } else if (!uiState.errorMessage.isNullOrBlank() && !uiState.showCreateUserModal && !uiState.showChangePasswordModal) {
+                MessageDialog(
+                    isSuccess = false,
+                    title = "Action Failed",
+                    message = uiState.errorMessage!!,
+                    onDismiss = viewModel::clearMessages
+                )
+            }
         }
     }
 }
@@ -458,6 +460,10 @@ private fun ChangePasswordBottomSheet(
     var newPassword by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
 
+    var currentPasswordVisible by remember { mutableStateOf(false) }
+    var newPasswordVisible by remember { mutableStateOf(false) }
+    var confirmPasswordVisible by remember { mutableStateOf(false) }
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -481,7 +487,15 @@ private fun ChangePasswordBottomSheet(
                 onValueChange = { currentPassword = it },
                 label = { Text("Current Password") },
                 singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
+                visualTransformation = if (currentPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    IconButton(onClick = { currentPasswordVisible = !currentPasswordVisible }) {
+                        Icon(
+                            imageVector = if (currentPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                            contentDescription = if (currentPasswordVisible) "Hide password" else "Show password"
+                        )
+                    }
+                },
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(12.dp))
@@ -491,7 +505,15 @@ private fun ChangePasswordBottomSheet(
                 onValueChange = { newPassword = it },
                 label = { Text("New Password") },
                 singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
+                visualTransformation = if (newPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    IconButton(onClick = { newPasswordVisible = !newPasswordVisible }) {
+                        Icon(
+                            imageVector = if (newPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                            contentDescription = if (newPasswordVisible) "Hide password" else "Show password"
+                        )
+                    }
+                },
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(12.dp))
@@ -501,7 +523,15 @@ private fun ChangePasswordBottomSheet(
                 onValueChange = { confirmPassword = it },
                 label = { Text("Confirm New Password") },
                 singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
+                visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                        Icon(
+                            imageVector = if (confirmPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                            contentDescription = if (confirmPasswordVisible) "Hide password" else "Show password"
+                        )
+                    }
+                },
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(24.dp))

@@ -66,6 +66,65 @@ class ReportsViewModel @Inject constructor(
         }
     }
 
+    fun exportPdf(context: Context, storeId: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            reportsRepository.exportPdf(storeId).fold(
+                onSuccess = { dto ->
+                    _uiState.update { it.copy(isLoading = false) }
+                    val base64 = dto.base64_data
+                    if (!base64.isNullOrBlank()) {
+                        val fileName = dto.file_name ?: "Sales_Report_$storeId.pdf"
+                        val success = PdfDownloader.saveBase64PdfToDownloads(context, fileName, base64)
+                        if (success) {
+                            _uiState.update {
+                                it.copy(
+                                    dialogState = ReportsDialogState(
+                                        isSuccess = true,
+                                        title = "Report Downloaded",
+                                        message = "Sales report '$fileName' saved successfully to device Downloads folder."
+                                    )
+                                )
+                            }
+                        } else {
+                            _uiState.update {
+                                it.copy(
+                                    dialogState = ReportsDialogState(
+                                        isSuccess = false,
+                                        title = "Download Failed",
+                                        message = "Could not save report PDF to storage."
+                                    )
+                                )
+                            }
+                        }
+                    } else {
+                        _uiState.update {
+                            it.copy(
+                                dialogState = ReportsDialogState(
+                                    isSuccess = false,
+                                    title = "Download Failed",
+                                    message = "Report PDF data is empty."
+                                )
+                            )
+                        }
+                    }
+                },
+                onFailure = { e ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            dialogState = ReportsDialogState(
+                                isSuccess = false,
+                                title = "Download Failed",
+                                message = e.message ?: "Failed to generate sales report PDF."
+                            )
+                        )
+                    }
+                }
+            )
+        }
+    }
+
     fun printInvoice(context: Context, invoiceId: String) {
         viewModelScope.launch {
             _downloadingInvoiceId.value = invoiceId
@@ -77,20 +136,56 @@ class ReportsViewModel @Inject constructor(
                         val fileName = dto.file_name ?: "Invoice_$invoiceId.pdf"
                         val success = PdfDownloader.saveBase64PdfToDownloads(context, fileName, base64)
                         if (success) {
-                            Toast.makeText(context, "Saved $fileName to Downloads folder", Toast.LENGTH_LONG).show()
+                            _uiState.update {
+                                it.copy(
+                                    dialogState = ReportsDialogState(
+                                        isSuccess = true,
+                                        title = "Invoice Downloaded",
+                                        message = "Invoice '$fileName' saved successfully to device Downloads folder."
+                                    )
+                                )
+                            }
                         } else {
-                            Toast.makeText(context, "Failed to save invoice PDF", Toast.LENGTH_SHORT).show()
+                            _uiState.update {
+                                it.copy(
+                                    dialogState = ReportsDialogState(
+                                        isSuccess = false,
+                                        title = "Download Failed",
+                                        message = "Could not save invoice PDF to device storage."
+                                    )
+                                )
+                            }
                         }
                     } else {
-                        Toast.makeText(context, "Invoice PDF data is empty", Toast.LENGTH_SHORT).show()
+                        _uiState.update {
+                            it.copy(
+                                dialogState = ReportsDialogState(
+                                    isSuccess = false,
+                                    title = "Download Failed",
+                                    message = "Invoice PDF data is empty."
+                                )
+                            )
+                        }
                     }
                 },
                 onFailure = { e ->
                     _downloadingInvoiceId.value = null
-                    Toast.makeText(context, e.message ?: "Failed to download invoice", Toast.LENGTH_SHORT).show()
+                    _uiState.update {
+                        it.copy(
+                            dialogState = ReportsDialogState(
+                                isSuccess = false,
+                                title = "Download Failed",
+                                message = e.message ?: "Failed to download invoice PDF."
+                            )
+                        )
+                    }
                 }
             )
         }
+    }
+
+    fun dismissDialog() {
+        _uiState.update { it.copy(dialogState = null) }
     }
 
     fun onStoreSelected(storeId: String) {
@@ -106,6 +201,10 @@ class ReportsViewModel @Inject constructor(
         _uiState.update { it.copy(searchQuery = query) }
     }
 
+    fun onDateSelected(date: String?) {
+        _uiState.update { it.copy(selectedDate = date) }
+    }
+
     fun filteredInvoices() = _uiState.value.data?.invoices.orEmpty().filter { invoice ->
         val matchesTab = when (_uiState.value.selectedTab) {
             ReportsTab.ALL -> true
@@ -119,6 +218,18 @@ class ReportsViewModel @Inject constructor(
                 invoice.customerPhone.lowercase().contains(query) ||
                 (invoice.paymentMethod?.lowercase()?.contains(query) == true)
 
-        matchesTab && matchesSearch
+        val selectedDate = _uiState.value.selectedDate
+        val matchesDate = selectedDate.isNullOrBlank() ||
+                invoice.date.contains(selectedDate) ||
+                matchesDateFlexible(invoice.date, selectedDate)
+
+        matchesTab && matchesSearch && matchesDate
+    }
+
+    private fun matchesDateFlexible(invoiceDate: String, targetDate: String): Boolean {
+        if (invoiceDate.isBlank() || targetDate.isBlank()) return false
+        val cleanInv = invoiceDate.replace("/", "-")
+        val cleanTarget = targetDate.replace("/", "-")
+        return cleanInv.contains(cleanTarget)
     }
 }
