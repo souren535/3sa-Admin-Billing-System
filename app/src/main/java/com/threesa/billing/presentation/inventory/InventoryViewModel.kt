@@ -23,17 +23,28 @@ class InventoryViewModel @Inject constructor(
 
     init {
         loadStores()
-        loadInventory("1")
+        observeSelectedStore()
+    }
+
+    private fun observeSelectedStore() {
+        viewModelScope.launch {
+            utilsRepository.selectedStoreId.collect { storeId ->
+                if (!storeId.isNullOrBlank() && storeId != _uiState.value.selectedStoreId) {
+                    _uiState.update { it.copy(selectedStoreId = storeId) }
+                    loadInventory(storeId)
+                }
+            }
+        }
     }
 
     private fun loadStores() {
         viewModelScope.launch {
             utilsRepository.getStores().fold(
                 onSuccess = { stores ->
-                    val firstStoreId = stores.firstOrNull()?.id?.toString() ?: "1"
-                    _uiState.update { it.copy(stores = stores, selectedStoreId = firstStoreId) }
-                    if (firstStoreId != "1" && _uiState.value.data == null) {
-                        loadInventory(firstStoreId)
+                    val globalStoreId = utilsRepository.selectedStoreId.value ?: stores.firstOrNull()?.id?.toString() ?: "1"
+                    _uiState.update { it.copy(stores = stores, selectedStoreId = globalStoreId) }
+                    if (_uiState.value.data == null || globalStoreId != "1") {
+                        loadInventory(globalStoreId)
                     }
                 },
                 onFailure = { e ->
@@ -47,7 +58,6 @@ class InventoryViewModel @Inject constructor(
 
     fun loadInventory(storeId: String) {
         viewModelScope.launch {
-            // If already loading stores, we don't need to set isLoading=true again but it's fine
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             getInventoryUseCase(storeId).fold(
                 onSuccess = { data ->
@@ -66,6 +76,7 @@ class InventoryViewModel @Inject constructor(
     }
 
     fun onStoreSelected(storeId: String) {
+        utilsRepository.setSelectedStoreId(storeId)
         _uiState.update { it.copy(selectedStoreId = storeId) }
         loadInventory(storeId)
     }

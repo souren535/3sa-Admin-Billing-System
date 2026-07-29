@@ -102,11 +102,11 @@ fun DashboardScreen(
                     item(key = "daily_summary_header") {
                         Text(
                             text = "Daily Summary",
-                            fontSize = 28.sp,
+                            fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextPrimary
                         )
-                        Spacer(Modifier.height(16.dp))
+                        Spacer(Modifier.height(14.dp))
                     }
 
                     items(summary.stores, key = { "store_${it.id}" }) { store ->

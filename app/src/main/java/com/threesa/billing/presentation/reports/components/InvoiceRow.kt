@@ -79,20 +79,32 @@ fun InvoiceRow(
         }
 
         // 2. Invoice No., Date, Time
-        Column(modifier = Modifier.weight(1.6f)) {
-            Text(invoice.id, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+        Column(modifier = Modifier.weight(1.5f).padding(end = 4.dp)) {
+            Text(
+                invoice.id,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextPrimary,
+                maxLines = 1
+            )
             if (invoice.date.isNotBlank()) Text(invoice.date, fontSize = 10.sp, color = TextSecondary)
             if (invoice.time.isNotBlank()) Text(invoice.time, fontSize = 10.sp, color = TextSecondary)
         }
 
         // 3. Customer Details
-        Column(modifier = Modifier.weight(2.0f)) {
-            Text(invoice.customerName, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
+        Column(modifier = Modifier.weight(2.1f).padding(end = 4.dp)) {
+            Text(
+                invoice.customerName,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                color = TextPrimary,
+                maxLines = 1
+            )
             if (invoice.customerPhone.isNotBlank()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(invoice.customerPhone, fontSize = 12.sp, color = TextSecondary)
-                    Spacer(Modifier.width(4.dp))
-                    Icon(Icons.Filled.Call, contentDescription = null, tint = PrimaryOrange, modifier = Modifier.size(12.dp))
+                    Text(invoice.customerPhone, fontSize = 11.sp, color = TextSecondary)
+                    Spacer(Modifier.width(2.dp))
+                    Icon(Icons.Filled.Call, contentDescription = null, tint = PrimaryOrange, modifier = Modifier.size(11.dp))
                 }
             }
         }

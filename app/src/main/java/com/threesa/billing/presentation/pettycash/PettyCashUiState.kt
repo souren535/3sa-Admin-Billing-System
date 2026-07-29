@@ -8,5 +8,6 @@ data class PettyCashUiState(
     val data: PettyCashData? = null,
     val stores: List<StoreDto> = emptyList(),
     val selectedStoreId: String? = null,
+    val selectedDate: String? = null,
     val errorMessage: String? = null
 )

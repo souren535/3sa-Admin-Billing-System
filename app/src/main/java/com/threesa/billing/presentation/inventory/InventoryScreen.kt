@@ -271,10 +271,7 @@ fun InventoryScreen(
                                 Spacer(Modifier.width(8.dp))
                                 Text("Low Stock Alerts", color = PrimaryOrange, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             }
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("View All", color = Color(0xFF3B82F6), fontSize = 13.sp, fontWeight = FontWeight.Medium)
-                                Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = Color(0xFF3B82F6), modifier = Modifier.size(16.dp))
-                            }
+
                         }
                         HorizontalDivider(color = BorderLight)
                         

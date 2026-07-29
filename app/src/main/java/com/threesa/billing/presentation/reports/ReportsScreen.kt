@@ -4,59 +4,46 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import com.threesa.billing.presentation.common.components.MessageDialog
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.threesa.billing.domain.model.Invoice
-import com.threesa.billing.domain.model.InvoiceStatus
 import com.threesa.billing.presentation.common.components.AppHeader
+import com.threesa.billing.presentation.common.components.MessageDialog
 import com.threesa.billing.presentation.common.components.StoreSwitcherBar
-import com.threesa.billing.presentation.common.components.StatusBadge
-import com.threesa.billing.presentation.common.components.BadgeStyle
 import com.threesa.billing.presentation.reports.components.InvoiceRow
 import com.threesa.billing.presentation.reports.components.ReportStatCard
 import com.threesa.billing.presentation.reports.components.ReportsTabs
 import com.threesa.billing.ui.theme.*
+import androidx.compose.ui.geometry.Offset
 import java.text.NumberFormat
 import java.util.Locale
 import java.text.SimpleDateFormat
 import java.util.Date
 
-import androidx.compose.ui.platform.LocalContext
+import java.util.Calendar
+import java.util.TimeZone
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,7 +59,27 @@ fun ReportsScreen(
     val listState = rememberLazyListState()
     var showTopSection by remember { mutableStateOf(true) }
     var showDatePicker by remember { mutableStateOf(false) }
-    val datePickerState = rememberDatePickerState()
+    var showSearchBar by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState(
+        selectableDates = remember {
+            object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                    val maxCalendar = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+                        set(Calendar.HOUR_OF_DAY, 23)
+                        set(Calendar.MINUTE, 59)
+                        set(Calendar.SECOND, 59)
+                        set(Calendar.MILLISECOND, 999)
+                    }
+                    return utcTimeMillis <= maxCalendar.timeInMillis
+                }
+
+                override fun isSelectableYear(year: Int): Boolean {
+                    val currentYear = Calendar.getInstance().get(Calendar.YEAR)
+                    return year <= currentYear
+                }
+            }
+        }
+    )
     
     @OptIn(ExperimentalLayoutApi::class)
     val isImeVisible = WindowInsets.isImeVisible
@@ -182,7 +189,11 @@ fun ReportsScreen(
                             }
 
                             OutlinedButton(
-                                onClick = { viewModel.exportPdf(context, uiState.selectedStoreId ?: "1") },
+                                onClick = {
+                                    val storeId = uiState.selectedStoreId ?: "1"
+                                    viewModel.exportPdf(context, storeId)
+                                    onExportPdfClick(storeId)
+                                },
                                 shape = MaterialTheme.shapes.small,
                                 border = androidx.compose.foundation.BorderStroke(1.dp, PeachBg),
                                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
@@ -225,7 +236,7 @@ fun ReportsScreen(
 
                 Spacer(Modifier.height(24.dp))
 
-                // Tabs and Calendar Date Filter
+                // Tabs and Search Button
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -251,45 +262,59 @@ fun ReportsScreen(
                             )
                             Spacer(Modifier.width(4.dp))
                         }
-                        IconButton(onClick = { showDatePicker = true }, modifier = Modifier.size(36.dp)) {
-                            Icon(Icons.Filled.CalendarMonth, contentDescription = "Pick Date", tint = PrimaryOrange)
+                        IconButton(
+                            onClick = { showSearchBar = !showSearchBar },
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Search,
+                                contentDescription = "Toggle Search Bar",
+                                tint = if (showSearchBar || uiState.searchQuery.isNotEmpty()) PrimaryOrange else TextSecondary
+                            )
                         }
                     }
                 }
 
-                Spacer(Modifier.height(12.dp))
-
-                // Search Bar next line of All paid unpaid
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .pointerInput(Unit) {
-                            detectTapGestures {
-                                showTopSection = false
-                            }
-                        }
+                // Toggleable Search Bar
+                AnimatedVisibility(
+                    visible = showSearchBar || uiState.searchQuery.isNotEmpty(),
+                    enter = expandVertically(),
+                    exit = shrinkVertically()
                 ) {
-                    OutlinedTextField(
-                        value = uiState.searchQuery,
-                        onValueChange = viewModel::onSearchChange,
-                        placeholder = { Text("Search invoices by ID, customer name...") },
-                        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                        trailingIcon = {
-                            if (uiState.searchQuery.isNotEmpty()) {
-                                IconButton(onClick = { viewModel.onSearchChange("") }) {
-                                    Icon(Icons.Filled.Clear, contentDescription = "Clear search")
+                    Column {
+                        Spacer(Modifier.height(12.dp))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .pointerInput(Unit) {
+                                    detectTapGestures {
+                                        showTopSection = false
+                                    }
                                 }
-                            }
-                        },
-                        singleLine = true,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .onFocusChanged { focusState ->
-                                if (focusState.isFocused) {
-                                    showTopSection = false
-                                }
-                            }
-                    )
+                        ) {
+                            OutlinedTextField(
+                                value = uiState.searchQuery,
+                                onValueChange = viewModel::onSearchChange,
+                                placeholder = { Text("search invoice number .....") },
+                                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = PrimaryOrange) },
+                                trailingIcon = {
+                                    if (uiState.searchQuery.isNotEmpty()) {
+                                        IconButton(onClick = { viewModel.onSearchChange("") }) {
+                                            Icon(Icons.Filled.Clear, contentDescription = "Clear search")
+                                        }
+                                    }
+                                },
+                                singleLine = true,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .onFocusChanged { focusState ->
+                                        if (focusState.isFocused) {
+                                            showTopSection = false
+                                        }
+                                    }
+                            )
+                        }
+                    }
                 }
 
                 Spacer(Modifier.height(16.dp))
@@ -322,12 +347,12 @@ fun ReportsScreen(
                             .fillMaxSize()
                             .nestedScroll(nestedScrollConnection)
                     ) {
-                        itemsIndexed(invoices, key = { index, inv -> "${inv.rawId}_${inv.id}_$index" }) { index, invoice ->
+                        itemsIndexed(invoices, key = { index, inv -> "${inv.id}_$index" }) { _, invoice ->
                             Box(modifier = Modifier.background(SurfaceWhite)) {
                                 InvoiceRow(
                                     invoice = invoice,
-                                    isDownloading = downloadingInvoiceId == invoice.rawId || downloadingInvoiceId == invoice.id,
-                                    onPrintClick = { viewModel.printInvoice(context, invoice.rawId) }
+                                    isDownloading = downloadingInvoiceId == invoice.id,
+                                    onPrintClick = { viewModel.printInvoice(context, invoice.id) }
                                 )
                             }
                             HorizontalDivider(color = BorderLight)
@@ -345,10 +370,10 @@ fun ReportsScreen(
                     TextButton(onClick = {
                         val selectedMillis = datePickerState.selectedDateMillis
                         if (selectedMillis != null) {
-                            val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).apply {
-                                timeZone = java.util.TimeZone.getTimeZone("UTC")
+                            val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply {
+                                timeZone = TimeZone.getTimeZone("UTC")
                             }
-                            val formattedDate = sdf.format(java.util.Date(selectedMillis))
+                            val formattedDate = sdf.format(Date(selectedMillis))
                             viewModel.onDateSelected(formattedDate)
                         }
                         showDatePicker = false

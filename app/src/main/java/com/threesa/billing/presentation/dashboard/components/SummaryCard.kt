@@ -58,9 +58,10 @@ fun SummaryCard(
         Spacer(Modifier.height(10.dp))
         Text(
             text = value,
-            fontSize = 24.sp,
+            fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
-            color = TextPrimary
+            color = TextPrimary,
+            maxLines = 1
         )
     }
 }

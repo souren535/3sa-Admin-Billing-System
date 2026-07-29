@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,7 +26,7 @@ import com.threesa.billing.presentation.common.components.StoreSwitcherBar
 import com.threesa.billing.presentation.pettycash.components.OutflowItem
 import com.threesa.billing.ui.theme.*
 import java.text.NumberFormat
-import java.util.Locale
+import java.util.*
 
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 
@@ -41,11 +42,32 @@ fun PettyCashScreen(
     
     var showDatePicker by remember { mutableStateOf(false) }
     var showStoreDialog by remember { mutableStateOf(false) }
-    val datePickerState = rememberDatePickerState()
+    val datePickerState = rememberDatePickerState(
+        selectableDates = remember {
+            object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                    val maxCalendar = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+                        set(Calendar.HOUR_OF_DAY, 23)
+                        set(Calendar.MINUTE, 59)
+                        set(Calendar.SECOND, 59)
+                        set(Calendar.MILLISECOND, 999)
+                    }
+                    return utcTimeMillis <= maxCalendar.timeInMillis
+                }
+
+                override fun isSelectableYear(year: Int): Boolean {
+                    val currentYear = Calendar.getInstance().get(Calendar.YEAR)
+                    return year <= currentYear
+                }
+            }
+        }
+    )
 
     // Find the name of the store that is currently selected in the UI
     val selectedStoreName = uiState.stores.find { it.id.toString() == uiState.selectedStoreId }?.name 
         ?: uiState.data?.storeName ?: "Select Store"
+
+    val outflows = viewModel.filteredOutflows()
 
     Column(
         modifier = Modifier
@@ -98,7 +120,7 @@ fun PettyCashScreen(
                                 )
                                 Spacer(Modifier.height(8.dp))
                                 Text(
-                                    rupee.format(data.currentCash),
+                                    rupee.format(kotlin.math.abs(data.currentCash)),
                                     fontSize = 32.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -112,14 +134,24 @@ fun PettyCashScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text("Today's Outflows", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                                Text(if (uiState.selectedDate == null) "Today's Outflows" else "Outflows for ${uiState.selectedDate}", fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                                 Row(verticalAlignment = Alignment.CenterVertically) {
+                                    if (uiState.selectedDate != null) {
+                                        AssistChip(
+                                            onClick = { viewModel.onDateSelected(null) },
+                                            label = { Text(uiState.selectedDate!!, fontSize = 11.sp) },
+                                            trailingIcon = {
+                                                Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(14.dp))
+                                            }
+                                        )
+                                        Spacer(Modifier.width(8.dp))
+                                    }
                                     Box(
                                         modifier = Modifier
                                             .background(ChipGray, MaterialTheme.shapes.extraLarge)
                                             .padding(horizontal = 12.dp, vertical = 6.dp)
                                     ) {
-                                        Text("${data.outflows.size} Transactions", fontSize = 12.sp, color = TextSecondary)
+                                        Text("${outflows.size} Transactions", fontSize = 12.sp, color = TextSecondary)
                                     }
                                     Spacer(Modifier.width(8.dp))
                                     IconButton(onClick = { showDatePicker = true }, modifier = Modifier.size(32.dp)) {
@@ -138,14 +170,14 @@ fun PettyCashScreen(
                                     .clip(MaterialTheme.shapes.medium)
                                     .background(SurfaceWhite)
                             ) {
-                                if (data.outflows.isEmpty()) {
+                                if (outflows.isEmpty()) {
                                     Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                                        Text("No outflows recorded today", color = TextMuted)
+                                        Text(if (uiState.selectedDate == null) "No outflows recorded today" else "No outflows for ${uiState.selectedDate}", color = TextMuted)
                                     }
                                 } else {
-                                    data.outflows.forEachIndexed { index, tx ->
+                                    outflows.forEachIndexed { index, tx ->
                                         OutflowItem(tx)
-                                        if (index != data.outflows.lastIndex) HorizontalDivider(color = BorderLight)
+                                        if (index != outflows.lastIndex) HorizontalDivider(color = BorderLight)
                                     }
                                 }
                                 
@@ -208,7 +240,17 @@ fun PettyCashScreen(
             DatePickerDialog(
                 onDismissRequest = { showDatePicker = false },
                 confirmButton = {
-                    TextButton(onClick = { showDatePicker = false }) { Text("OK") }
+                    TextButton(onClick = {
+                        val selectedMillis = datePickerState.selectedDateMillis
+                        if (selectedMillis != null) {
+                            val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply {
+                                timeZone = TimeZone.getTimeZone("UTC")
+                            }
+                            val formattedDate = sdf.format(Date(selectedMillis))
+                            viewModel.onDateSelected(formattedDate)
+                        }
+                        showDatePicker = false
+                    }) { Text("OK") }
                 },
                 dismissButton = {
                     TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }

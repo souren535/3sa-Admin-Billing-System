@@ -23,6 +23,9 @@ import com.threesa.billing.presentation.pettycash.components.OutflowItem
 import com.threesa.billing.ui.theme.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 
+import java.util.Calendar
+import java.util.TimeZone
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistoricalPettyCashScreen(
@@ -31,7 +34,26 @@ fun HistoricalPettyCashScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showDatePicker by remember { mutableStateOf(false) }
-    val datePickerState = rememberDatePickerState()
+    val datePickerState = rememberDatePickerState(
+        selectableDates = remember {
+            object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                    val maxCalendar = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+                        set(Calendar.HOUR_OF_DAY, 23)
+                        set(Calendar.MINUTE, 59)
+                        set(Calendar.SECOND, 59)
+                        set(Calendar.MILLISECOND, 999)
+                    }
+                    return utcTimeMillis <= maxCalendar.timeInMillis
+                }
+
+                override fun isSelectableYear(year: Int): Boolean {
+                    val currentYear = Calendar.getInstance().get(Calendar.YEAR)
+                    return year <= currentYear
+                }
+            }
+        }
+    )
 
     Scaffold(
         topBar = {

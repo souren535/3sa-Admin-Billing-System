@@ -51,7 +51,7 @@ fun OutflowItem(transaction: PettyCashTransaction) {
             ) {
                 Text(transaction.title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                 Text(
-                    "-${rupee.format(transaction.amount)}",
+                    rupee.format(transaction.amount),
                     color = ErrorRed,
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp

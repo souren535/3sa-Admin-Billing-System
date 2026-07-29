@@ -30,17 +30,28 @@ class ReportsViewModel @Inject constructor(
 
     init {
         loadStores()
-        loadReports("1")
+        observeSelectedStore()
+    }
+
+    private fun observeSelectedStore() {
+        viewModelScope.launch {
+            utilsRepository.selectedStoreId.collect { storeId ->
+                if (!storeId.isNullOrBlank() && storeId != _uiState.value.selectedStoreId) {
+                    _uiState.update { it.copy(selectedStoreId = storeId) }
+                    loadReports(storeId)
+                }
+            }
+        }
     }
 
     private fun loadStores() {
         viewModelScope.launch {
             utilsRepository.getStores().fold(
                 onSuccess = { stores ->
-                    val firstStoreId = stores.firstOrNull()?.id?.toString() ?: "1"
-                    _uiState.update { it.copy(stores = stores, selectedStoreId = firstStoreId) }
-                    if (firstStoreId != "1" && _uiState.value.data == null) {
-                        loadReports(firstStoreId)
+                    val globalStoreId = utilsRepository.selectedStoreId.value ?: stores.firstOrNull()?.id?.toString() ?: "1"
+                    _uiState.update { it.copy(stores = stores, selectedStoreId = globalStoreId) }
+                    if (_uiState.value.data == null || globalStoreId != "1") {
+                        loadReports(globalStoreId)
                     }
                 },
                 onFailure = { e ->
@@ -189,6 +200,7 @@ class ReportsViewModel @Inject constructor(
     }
 
     fun onStoreSelected(storeId: String) {
+        utilsRepository.setSelectedStoreId(storeId)
         _uiState.update { it.copy(selectedStoreId = storeId) }
         loadReports(storeId)
     }

@@ -3,6 +3,7 @@ package com.threesa.billing.presentation.pettycash
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.threesa.billing.domain.model.PettyCashTransaction
 import com.threesa.billing.domain.repository.UtilsRepository
 import com.threesa.billing.domain.usecase.GetPettyCashUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -23,6 +24,18 @@ class PettyCashViewModel @Inject constructor(
 
     init {
         loadStores()
+        observeSelectedStore()
+    }
+
+    private fun observeSelectedStore() {
+        viewModelScope.launch {
+            utilsRepository.selectedStoreId.collect { storeId ->
+                if (!storeId.isNullOrBlank() && storeId != _uiState.value.selectedStoreId) {
+                    _uiState.update { it.copy(selectedStoreId = storeId) }
+                    loadPettyCash(storeId)
+                }
+            }
+        }
     }
 
     private fun loadStores() {
@@ -31,13 +44,9 @@ class PettyCashViewModel @Inject constructor(
             utilsRepository.getStores().fold(
                 onSuccess = { stores ->
                     Log.d("PettyCashViewModel", "Loaded ${stores.size} stores")
-                    val firstStoreId = stores.firstOrNull()?.id?.toString()
-                    _uiState.update { it.copy(stores = stores, selectedStoreId = firstStoreId) }
-                    if (firstStoreId != null) {
-                        loadPettyCash(firstStoreId)
-                    } else {
-                        _uiState.update { it.copy(isLoading = false, errorMessage = "No stores found") }
-                    }
+                    val globalStoreId = utilsRepository.selectedStoreId.value ?: stores.firstOrNull()?.id?.toString() ?: "1"
+                    _uiState.update { it.copy(stores = stores, selectedStoreId = globalStoreId) }
+                    loadPettyCash(globalStoreId)
                 },
                 onFailure = { e ->
                     Log.e("PettyCashViewModel", "Failed to load stores", e)
@@ -48,8 +57,13 @@ class PettyCashViewModel @Inject constructor(
     }
 
     fun onStoreSelected(storeId: String) {
+        utilsRepository.setSelectedStoreId(storeId)
         _uiState.update { it.copy(selectedStoreId = storeId) }
         loadPettyCash(storeId)
+    }
+
+    fun onDateSelected(date: String?) {
+        _uiState.update { it.copy(selectedDate = date) }
     }
 
     fun loadPettyCash(storeId: String) {
@@ -63,6 +77,15 @@ class PettyCashViewModel @Inject constructor(
                     _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
                 }
             )
+        }
+    }
+
+    fun filteredOutflows(): List<PettyCashTransaction> {
+        val allOutflows = _uiState.value.data?.outflows ?: return emptyList()
+        val selectedDate = _uiState.value.selectedDate ?: return allOutflows
+
+        return allOutflows.filter { tx ->
+            tx.time.contains(selectedDate)
         }
     }
 

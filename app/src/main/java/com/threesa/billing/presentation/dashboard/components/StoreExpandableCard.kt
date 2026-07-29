@@ -25,6 +25,9 @@ import com.threesa.billing.ui.theme.BorderLight
 import java.text.NumberFormat
 import java.util.Locale
 
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.runtime.remember
+
 @Composable
 fun StoreExpandableCard(
     store: Store,
@@ -40,7 +43,10 @@ fun StoreExpandableCard(
         modifier = modifier
             .fillMaxWidth()
             .animateContentSize()
-            .clickable { onClick() },
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) { onClick() },
         border = BorderStroke(1.dp, BorderLight),
         colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
@@ -53,7 +59,7 @@ fun StoreExpandableCard(
             ) {
                 Text(
                     text = store.name,
-                    fontSize = 18.sp,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextPrimary
                 )
@@ -89,7 +95,7 @@ fun StoreExpandableCard(
                         Spacer(Modifier.height(4.dp))
                         Text(
                             text = rupeeFormat.format(store.totalRevenue),
-                            fontSize = 22.sp,
+                            fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextPrimary
                         )
@@ -104,7 +110,7 @@ fun StoreExpandableCard(
                         Spacer(Modifier.height(4.dp))
                         Text(
                             text = "${store.billsToday} Bills",
-                            fontSize = 16.sp,
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = TextPrimary
                         )
