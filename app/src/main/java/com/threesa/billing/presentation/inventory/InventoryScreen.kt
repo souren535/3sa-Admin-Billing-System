@@ -43,6 +43,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -84,13 +85,20 @@ fun InventoryScreen(
     ) {
         AppHeader(onAvatarClick = onNavigateToProfile)
         
-        Box(modifier = Modifier.fillMaxSize().weight(1f)) {
+        PullToRefreshBox(
+            isRefreshing = uiState.isLoading,
+            onRefresh = { viewModel.loadInventory(uiState.selectedStoreId ?: "1") },
+            indicator = {},
+            modifier = Modifier.fillMaxSize().weight(1f)
+        ) {
             if (uiState.isLoading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                return@Box
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center),
+                    color = PrimaryOrange
+                )
             }
 
-            if (uiState.errorMessage != null) {
+            if (uiState.errorMessage != null && uiState.data == null) {
                 Column(
                     modifier = Modifier.align(Alignment.Center).padding(20.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -101,17 +109,15 @@ fun InventoryScreen(
                         Text("Retry")
                     }
                 }
-                return@Box
-            }
+            } else if (uiState.data != null) {
+                val data = uiState.data!!
+                val products = viewModel.filteredProducts()
 
-            val data = uiState.data ?: return@Box
-            val products = viewModel.filteredProducts()
-
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 20.dp)
-            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 20.dp)
+                ) {
                 AnimatedVisibility(
                     visible = showTopSection,
                     enter = expandVertically(),
@@ -291,4 +297,5 @@ fun InventoryScreen(
             }
         }
     }
+}
 }

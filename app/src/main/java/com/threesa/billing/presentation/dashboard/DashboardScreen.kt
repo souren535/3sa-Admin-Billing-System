@@ -44,6 +44,10 @@ import com.threesa.billing.presentation.dashboard.components.SummaryCard
 import java.text.NumberFormat
 import java.util.Locale
 
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     onNavigateToProfile: () -> Unit = {},
@@ -58,7 +62,10 @@ fun DashboardScreen(
             .background(BackgroundCream)
     ) {
         AppHeader(onAvatarClick = onNavigateToProfile)
-        Box(
+        PullToRefreshBox(
+            isRefreshing = uiState.isLoading,
+            onRefresh = { viewModel.loadDashboard() },
+            indicator = {},
             modifier = Modifier.fillMaxSize()
         ) {
             if (uiState.summary != null) {

@@ -27,6 +27,8 @@ import com.threesa.billing.ui.theme.*
 import java.text.NumberFormat
 import java.util.Locale
 
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PettyCashScreen(
@@ -52,7 +54,12 @@ fun PettyCashScreen(
     ) {
         AppHeader(onAvatarClick = onNavigateToProfile)
         
-        Box(modifier = Modifier.fillMaxSize()) {
+        PullToRefreshBox(
+            isRefreshing = uiState.isLoading,
+            onRefresh = { viewModel.refresh() },
+            indicator = {},
+            modifier = Modifier.fillMaxSize().weight(1f)
+        ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 
                 // 1. Store Switcher Section

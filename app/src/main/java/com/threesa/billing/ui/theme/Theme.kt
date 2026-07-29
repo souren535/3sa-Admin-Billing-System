@@ -10,9 +10,12 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.Density
 import androidx.core.view.WindowCompat
 
 private val LightColors = lightColorScheme(
@@ -83,6 +86,13 @@ fun BillingSystemTheme(
         colorScheme = colorScheme,
         typography = BillingSystemTypography,
         shapes = BillingSystemShapes,
-        content = content
-    )
+    ) {
+        CompositionLocalProvider(
+            LocalDensity provides Density(
+                density = LocalDensity.current.density,
+                fontScale = 1f // Ignore system font scale
+            ),
+            content = content
+        )
+    }
 }

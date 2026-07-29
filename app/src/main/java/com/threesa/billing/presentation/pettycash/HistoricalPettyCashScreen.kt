@@ -21,6 +21,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.threesa.billing.presentation.pettycash.components.OutflowItem
 import com.threesa.billing.ui.theme.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,7 +48,13 @@ fun HistoricalPettyCashScreen(
         },
         containerColor = BackgroundCream
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+
+        PullToRefreshBox(
+            isRefreshing = uiState.isLoading,
+            onRefresh = { viewModel.loadHistoricalExpenses() },
+            indicator = {},
+            modifier = Modifier.fillMaxSize().padding(padding)
+        ) {
             if (uiState.isLoading) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = PrimaryOrange)
             } else if (uiState.errorMessage != null) {

@@ -29,6 +29,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.threesa.billing.presentation.common.components.BadgeStyle
 import com.threesa.billing.presentation.common.components.StatusBadge
 import com.threesa.billing.ui.theme.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -71,194 +72,206 @@ fun ProfileScreen(
             )
         }
     ) { paddingValues ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(BackgroundCream)
                 .padding(paddingValues)
-                .verticalScroll(scrollState)
-                .padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (uiState.isLoading && uiState.profile == null) {
-                Box(modifier = Modifier.fillMaxWidth().height(200.dp)) {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = PrimaryOrange)
-                }
-            } else {
-                val profile = uiState.profile
-                val name = profile?.name ?: "Super Admin"
-                val email = profile?.email ?: "billingsys@3sawebx.com"
-                val role = profile?.role ?: "super_admin"
-
-                // User Avatar Header
-                Box(
+            PullToRefreshBox(
+                isRefreshing = uiState.isLoading,
+                onRefresh = { viewModel.loadProfileAndPermissions() },
+                indicator = {},
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Column(
                     modifier = Modifier
-                        .size(90.dp)
-                        .clip(CircleShape)
-                        .background(SurfaceWhite)
-                        .border(2.dp, PrimaryOrange, CircleShape),
-                    contentAlignment = Alignment.Center
+                        .fillMaxSize()
+                        .background(BackgroundCream)
+                        .verticalScroll(scrollState)
+                        .padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.Person,
-                        contentDescription = null,
-                        modifier = Modifier.size(48.dp),
-                        tint = TextSecondary
-                    )
-                }
+                    if (uiState.isLoading && uiState.profile == null) {
+                        Box(modifier = Modifier.fillMaxWidth().height(200.dp)) {
+                            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = PrimaryOrange)
+                        }
+                    } else {
+                        val profile = uiState.profile
+                        val name = profile?.name ?: "Super Admin"
+                        val email = profile?.email ?: "billingsys@3sawebx.com"
+                        val role = profile?.role ?: "super_admin"
 
-                Spacer(Modifier.height(12.dp))
-
-                Text(name, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                Spacer(Modifier.height(2.dp))
-                Text(email, fontSize = 13.sp, color = TextSecondary)
-                Spacer(Modifier.height(8.dp))
-                StatusBadge(
-                    text = role.replace("_", " ").uppercase(),
-                    style = if (role.contains("admin")) BadgeStyle.SUCCESS else BadgeStyle.WARNING
-                )
-
-                Spacer(Modifier.height(24.dp))
-
-                // Permissions Card Section (Collapsible - Open by Default)
-                var isPermissionsExpanded by remember { mutableStateOf(true) }
-                val permissionsMap = uiState.permissions?.roles
-                if (!permissionsMap.isNullOrEmpty()) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(MaterialTheme.shapes.medium)
-                            .background(Color.White)
-                            .border(1.dp, BorderLight, MaterialTheme.shapes.medium)
-                            .padding(16.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
+                        // User Avatar Header
+                        Box(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { isPermissionsExpanded = !isPermissionsExpanded }
+                                .size(90.dp)
+                                .clip(CircleShape)
+                                .background(SurfaceWhite)
+                                .border(2.dp, PrimaryOrange, CircleShape),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Filled.Security, contentDescription = null, tint = PrimaryOrange, modifier = Modifier.size(20.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text("Role Permissions", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary, modifier = Modifier.weight(1f))
                             Icon(
-                                imageVector = if (isPermissionsExpanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
-                                contentDescription = if (isPermissionsExpanded) "Collapse" else "Expand",
+                                imageVector = Icons.Filled.Person,
+                                contentDescription = null,
+                                modifier = Modifier.size(48.dp),
                                 tint = TextSecondary
                             )
                         }
 
-                        androidx.compose.animation.AnimatedVisibility(visible = isPermissionsExpanded) {
-                            Column {
-                                Spacer(Modifier.height(12.dp))
-                                HorizontalDivider(color = BorderLight)
-                                Spacer(Modifier.height(12.dp))
+                        Spacer(Modifier.height(12.dp))
 
-                                permissionsMap.forEach { (roleKey, roleDetail) ->
-                                    Column(modifier = Modifier.padding(bottom = 12.dp)) {
-                                        Text(
-                                            text = roleDetail.display_name ?: roleKey.uppercase(),
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = TextPrimary
-                                        )
-                                        Spacer(Modifier.height(6.dp))
+                        Text(name, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                        Spacer(Modifier.height(2.dp))
+                        Text(email, fontSize = 13.sp, color = TextSecondary)
+                        Spacer(Modifier.height(8.dp))
+                        StatusBadge(
+                            text = role.replace("_", " ").uppercase(),
+                            style = if (role.contains("admin")) BadgeStyle.SUCCESS else BadgeStyle.WARNING
+                        )
 
-                                        FlowRow(
-                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                                        ) {
-                                            val perms = roleDetail.permissions.orEmpty()
-                                            if (perms.contains("*")) {
-                                                AssistChip(
-                                                    onClick = {},
-                                                    label = { Text("All Permissions (*)", fontSize = 11.sp, color = PrimaryOrange) },
-                                                    colors = AssistChipDefaults.assistChipColors(containerColor = PeachBg)
+                        Spacer(Modifier.height(24.dp))
+
+                        // Permissions Card Section (Collapsible - Open by Default)
+                        var isPermissionsExpanded by remember { mutableStateOf(true) }
+                        val permissionsMap = uiState.permissions?.roles
+                        if (!permissionsMap.isNullOrEmpty()) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(MaterialTheme.shapes.medium)
+                                    .background(Color.White)
+                                    .border(1.dp, BorderLight, MaterialTheme.shapes.medium)
+                                    .padding(16.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { isPermissionsExpanded = !isPermissionsExpanded }
+                                ) {
+                                    Icon(Icons.Filled.Security, contentDescription = null, tint = PrimaryOrange, modifier = Modifier.size(20.dp))
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("Role Permissions", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary, modifier = Modifier.weight(1f))
+                                    Icon(
+                                        imageVector = if (isPermissionsExpanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                                        contentDescription = if (isPermissionsExpanded) "Collapse" else "Expand",
+                                        tint = TextSecondary
+                                    )
+                                }
+
+                                androidx.compose.animation.AnimatedVisibility(visible = isPermissionsExpanded) {
+                                    Column {
+                                        Spacer(Modifier.height(12.dp))
+                                        HorizontalDivider(color = BorderLight)
+                                        Spacer(Modifier.height(12.dp))
+
+                                        permissionsMap.forEach { (roleKey, roleDetail) ->
+                                            Column(modifier = Modifier.padding(bottom = 12.dp)) {
+                                                Text(
+                                                    text = roleDetail.display_name ?: roleKey.uppercase(),
+                                                    fontSize = 14.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = TextPrimary
                                                 )
-                                            } else {
-                                                perms.forEach { perm ->
-                                                    AssistChip(
-                                                        onClick = {},
-                                                        label = { Text(perm.replace("_", " "), fontSize = 11.sp) },
-                                                        colors = AssistChipDefaults.assistChipColors(containerColor = SurfaceMuted)
-                                                    )
+                                                Spacer(Modifier.height(6.dp))
+
+                                                FlowRow(
+                                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                                ) {
+                                                    val perms = roleDetail.permissions.orEmpty()
+                                                    if (perms.contains("*")) {
+                                                        AssistChip(
+                                                            onClick = {},
+                                                            label = { Text("All Permissions (*)", fontSize = 11.sp, color = PrimaryOrange) },
+                                                            colors = AssistChipDefaults.assistChipColors(containerColor = PeachBg)
+                                                        )
+                                                    } else {
+                                                        perms.forEach { perm ->
+                                                            AssistChip(
+                                                                onClick = {},
+                                                                label = { Text(perm.replace("_", " "), fontSize = 11.sp) },
+                                                                colors = AssistChipDefaults.assistChipColors(containerColor = SurfaceMuted)
+                                                            )
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }
                                     }
                                 }
                             }
+
+                            Spacer(Modifier.height(20.dp))
                         }
+
+                        // Action Menu Options
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(MaterialTheme.shapes.medium)
+                                .background(Color.White)
+                                .border(1.dp, BorderLight, MaterialTheme.shapes.medium)
+                        ) {
+                            ProfileMenuItem(
+                                icon = Icons.Filled.PersonAdd,
+                                text = "Create New User",
+                                onClick = viewModel::openCreateUserModal
+                            )
+                            HorizontalDivider(color = BorderLight)
+                            ProfileMenuItem(
+                                icon = Icons.Filled.Lock,
+                                text = "Change Password",
+                                onClick = viewModel::openChangePasswordModal
+                            )
+                        }
+
+                        Spacer(Modifier.height(28.dp))
+
+                        // Logout Button
+                        Button(
+                            onClick = { viewModel.logout(onLogoutClick) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = SoftRedBg),
+                            shape = MaterialTheme.shapes.medium
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null, tint = SoftRedIcon)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Log Out", color = SoftRedIcon, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        Spacer(Modifier.height(30.dp))
                     }
-
-                    Spacer(Modifier.height(20.dp))
                 }
+            }
 
-                // Action Menu Options
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(MaterialTheme.shapes.medium)
-                        .background(Color.White)
-                        .border(1.dp, BorderLight, MaterialTheme.shapes.medium)
-                ) {
-                    ProfileMenuItem(
-                        icon = Icons.Filled.PersonAdd,
-                        text = "Create New User",
-                        onClick = viewModel::openCreateUserModal
-                    )
-                    HorizontalDivider(color = BorderLight)
-                    ProfileMenuItem(
-                        icon = Icons.Filled.Lock,
-                        text = "Change Password",
-                        onClick = viewModel::openChangePasswordModal
-                    )
-                }
+            // Modal 1: Create User Modal
+            if (uiState.showCreateUserModal) {
+                CreateUserBottomSheet(
+                    stores = uiState.stores,
+                    isCreating = uiState.isCreatingUser,
+                    errorMessage = uiState.errorMessage,
+                    onDismiss = viewModel::closeCreateUserModal,
+                    onSubmit = { name, email, pass, role, shopId ->
+                        viewModel.createUser(name, email, pass, role, shopId)
+                    }
+                )
+            }
 
-                Spacer(Modifier.height(28.dp))
-
-                // Logout Button
-                Button(
-                    onClick = { viewModel.logout(onLogoutClick) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = SoftRedBg),
-                    shape = MaterialTheme.shapes.medium
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null, tint = SoftRedIcon)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Log Out", color = SoftRedIcon, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                }
-
-                Spacer(Modifier.height(30.dp))
+            // Modal 2: Change Password Modal
+            if (uiState.showChangePasswordModal) {
+                ChangePasswordBottomSheet(
+                    isChanging = uiState.isChangingPassword,
+                    errorMessage = uiState.errorMessage,
+                    onDismiss = viewModel::closeChangePasswordModal,
+                    onSubmit = { current, newPass, confirmPass ->
+                        viewModel.changePassword(current, newPass, confirmPass)
+                    }
+                )
             }
         }
-    }
-
-    // Modal 1: Create User Modal
-    if (uiState.showCreateUserModal) {
-        CreateUserBottomSheet(
-            stores = uiState.stores,
-            isCreating = uiState.isCreatingUser,
-            errorMessage = uiState.errorMessage,
-            onDismiss = viewModel::closeCreateUserModal,
-            onSubmit = { name, email, pass, role, shopId ->
-                viewModel.createUser(name, email, pass, role, shopId)
-            }
-        )
-    }
-
-    // Modal 2: Change Password Modal
-    if (uiState.showChangePasswordModal) {
-        ChangePasswordBottomSheet(
-            isChanging = uiState.isChangingPassword,
-            errorMessage = uiState.errorMessage,
-            onDismiss = viewModel::closeChangePasswordModal,
-            onSubmit = { current, newPass, confirmPass ->
-                viewModel.changePassword(current, newPass, confirmPass)
-            }
-        )
     }
 }
 

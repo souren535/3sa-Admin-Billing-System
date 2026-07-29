@@ -26,6 +26,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -108,10 +109,17 @@ fun ReportsScreen(
     ) {
         AppHeader(onAvatarClick = onNavigateToProfile)
 
-        Box(modifier = Modifier.fillMaxSize().weight(1f)) {
+        PullToRefreshBox(
+            isRefreshing = uiState.isLoading,
+            onRefresh = { viewModel.loadReports(uiState.selectedStoreId ?: "1") },
+            indicator = {},
+            modifier = Modifier.fillMaxSize().weight(1f)
+        ) {
             if (uiState.isLoading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                return@Box
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center),
+                    color = PrimaryOrange
+                )
             }
 
             if (uiState.errorMessage != null && uiState.data == null) {
@@ -125,17 +133,15 @@ fun ReportsScreen(
                         Text("Retry")
                     }
                 }
-                return@Box
-            }
+            } else if (uiState.data != null) {
+                val data = uiState.data!!
+                val invoices = viewModel.filteredInvoices()
 
-            val data = uiState.data ?: return@Box
-            val invoices = viewModel.filteredInvoices()
-
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 20.dp)
-            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 20.dp)
+                ) {
                 AnimatedVisibility(
                     visible = showTopSection,
                     enter = expandVertically(),
@@ -327,6 +333,7 @@ fun ReportsScreen(
             }
         }
     }
+}
 }
 
 private val rupee = NumberFormat.getCurrencyInstance(Locale("en", "IN"))
