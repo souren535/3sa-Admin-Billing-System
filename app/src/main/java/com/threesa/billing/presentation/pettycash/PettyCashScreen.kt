@@ -134,7 +134,7 @@ fun PettyCashScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text(if (uiState.selectedDate == null) "Today's Outflows" else "Outflows for ${uiState.selectedDate}", fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                                Text("Outflows", fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     if (uiState.selectedDate != null) {
                                         AssistChip(

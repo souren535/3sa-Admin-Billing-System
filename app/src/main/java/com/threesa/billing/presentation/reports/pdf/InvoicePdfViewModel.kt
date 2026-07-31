@@ -1,7 +1,6 @@
 package com.threesa.billing.presentation.reports.pdf
 
 import android.content.Context
-import android.widget.Toast
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -15,39 +14,43 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-data class ReportPdfDialogState(
+data class InvoicePdfDialogState(
     val isSuccess: Boolean,
     val title: String,
     val message: String
 )
 
-data class ReportPdfUiState(
+data class InvoicePdfUiState(
     val isLoading: Boolean = false,
     val isDownloading: Boolean = false,
     val pdfData: PdfExportDto? = null,
     val errorMessage: String? = null,
-    val dialogState: ReportPdfDialogState? = null
+    val dialogState: InvoicePdfDialogState? = null
 )
 
 @HiltViewModel
-class ReportPdfViewModel @Inject constructor(
+class InvoicePdfViewModel @Inject constructor(
     private val reportsRepository: ReportsRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    val storeId: String = savedStateHandle.get<String>("storeId") ?: "1"
+    val invoiceId: String = savedStateHandle.get<String>("invoiceId") ?: ""
 
-    private val _uiState = MutableStateFlow(ReportPdfUiState())
-    val uiState: StateFlow<ReportPdfUiState> = _uiState
+    private val _uiState = MutableStateFlow(InvoicePdfUiState())
+    val uiState: StateFlow<InvoicePdfUiState> = _uiState
 
     init {
-        loadReportPdf()
+        if (invoiceId.isNotBlank()) {
+            loadInvoicePdf()
+        } else {
+            _uiState.update { it.copy(errorMessage = "Invalid Invoice ID") }
+        }
     }
 
-    fun loadReportPdf() {
+    fun loadInvoicePdf() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            reportsRepository.exportPdf(storeId).fold(
+            reportsRepository.printInvoice(invoiceId).fold(
                 onSuccess = { dto ->
                     _uiState.update { it.copy(isLoading = false, pdfData = dto) }
                 },
@@ -64,7 +67,7 @@ class ReportPdfViewModel @Inject constructor(
         if (base64.isNullOrBlank()) {
             _uiState.update {
                 it.copy(
-                    dialogState = ReportPdfDialogState(
+                    dialogState = InvoicePdfDialogState(
                         isSuccess = false,
                         title = "Download Failed",
                         message = "PDF data is empty."
@@ -76,27 +79,27 @@ class ReportPdfViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isDownloading = true) }
-            val fileName = pdfData.file_name ?: "sales_report_$storeId.pdf"
+            val fileName = pdfData.file_name ?: "invoice_$invoiceId.pdf"
             val success = PdfDownloader.saveBase64PdfToDownloads(context, fileName, base64)
             _uiState.update { it.copy(isDownloading = false) }
 
             if (success) {
                 _uiState.update {
                     it.copy(
-                        dialogState = ReportPdfDialogState(
+                        dialogState = InvoicePdfDialogState(
                             isSuccess = true,
-                            title = "Report Downloaded",
-                            message = "Sales report '$fileName' saved successfully to device Downloads folder."
+                            title = "Invoice Downloaded",
+                            message = "Invoice '$fileName' saved successfully to device Downloads folder."
                         )
                     )
                 }
             } else {
                 _uiState.update {
                     it.copy(
-                        dialogState = ReportPdfDialogState(
+                        dialogState = InvoicePdfDialogState(
                             isSuccess = false,
                             title = "Download Failed",
-                            message = "Failed to download PDF."
+                            message = "Could not save invoice PDF to device storage."
                         )
                     )
                 }

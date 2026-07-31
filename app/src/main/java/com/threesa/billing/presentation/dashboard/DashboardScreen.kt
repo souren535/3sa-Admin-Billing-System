@@ -41,6 +41,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.threesa.billing.presentation.dashboard.components.StoreExpandableCard
 import com.threesa.billing.presentation.dashboard.components.SummaryCard
+import com.threesa.billing.utils.rsp
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -102,7 +103,7 @@ fun DashboardScreen(
                     item(key = "daily_summary_header") {
                         Text(
                             text = "Daily Summary",
-                            fontSize = 20.sp,
+                            fontSize = 20.rsp,
                             fontWeight = FontWeight.Bold,
                             color = TextPrimary
                         )

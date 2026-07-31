@@ -50,6 +50,7 @@ import java.util.TimeZone
 fun ReportsScreen(
     onNavigateToProfile: () -> Unit = {},
     onExportPdfClick: (storeId: String) -> Unit = {},
+    onPrintInvoiceClick: (invoiceId: String) -> Unit = {},
     viewModel: ReportsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -191,7 +192,6 @@ fun ReportsScreen(
                             OutlinedButton(
                                 onClick = {
                                     val storeId = uiState.selectedStoreId ?: "1"
-                                    viewModel.exportPdf(context, storeId)
                                     onExportPdfClick(storeId)
                                 },
                                 shape = MaterialTheme.shapes.small,
@@ -351,8 +351,8 @@ fun ReportsScreen(
                             Box(modifier = Modifier.background(SurfaceWhite)) {
                                 InvoiceRow(
                                     invoice = invoice,
-                                    isDownloading = downloadingInvoiceId == invoice.id,
-                                    onPrintClick = { viewModel.printInvoice(context, invoice.id) }
+                                    isDownloading = downloadingInvoiceId == invoice.id || downloadingInvoiceId == invoice.rawId,
+                                    onPrintClick = { onPrintInvoiceClick(invoice.rawId.ifBlank { invoice.id }) }
                                 )
                             }
                             HorizontalDivider(color = BorderLight)

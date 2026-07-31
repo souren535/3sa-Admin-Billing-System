@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.threesa.billing.ui.theme.TextSecondary
 import com.threesa.billing.ui.theme.TextPrimary
+import com.threesa.billing.utils.rsp
 
 @Composable
 fun SummaryCard(
@@ -38,7 +39,7 @@ fun SummaryCard(
         ) {
             Text(
                 text = label,
-                fontSize = 13.sp,
+                fontSize = 13.rsp,
                 color = TextSecondary
             )
             Box(
@@ -58,7 +59,7 @@ fun SummaryCard(
         Spacer(Modifier.height(10.dp))
         Text(
             text = value,
-            fontSize = 18.sp,
+            fontSize = 18.rsp,
             fontWeight = FontWeight.Bold,
             color = TextPrimary,
             maxLines = 1

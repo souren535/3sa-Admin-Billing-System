@@ -11,7 +11,12 @@ import java.io.File
 object PdfDownloader {
     fun saveBase64PdfToDownloads(context: Context, fileName: String, base64Data: String): Boolean {
         return try {
-            val pdfBytes = Base64.decode(base64Data, Base64.DEFAULT)
+            val cleanBase64 = base64Data
+                .substringAfter("base64,")
+                .trim()
+                .replace("\n", "")
+                .replace("\r", "")
+            val pdfBytes = Base64.decode(cleanBase64, Base64.DEFAULT)
             val cleanFileName = if (fileName.endsWith(".pdf", ignoreCase = true)) fileName else "$fileName.pdf"
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {

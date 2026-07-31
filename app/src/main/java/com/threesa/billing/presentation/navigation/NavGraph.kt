@@ -34,7 +34,8 @@ fun NavGraph(sessionViewModel: SessionViewModel = hiltViewModel()) {
                        currentRoute != Screen.Splash.route &&
                        currentRoute != Screen.Login.route && 
                        currentRoute != Screen.Profile.route &&
-                       !currentRoute.startsWith("report_pdf")
+                       !currentRoute.startsWith("report_pdf") &&
+                       !currentRoute.startsWith("invoice_pdf")
 
     // 3. Reactive Auto-Navigation (Only for runtime state changes after splash)
     LaunchedEffect(isLoggedIn) {
@@ -108,6 +109,9 @@ fun NavGraph(sessionViewModel: SessionViewModel = hiltViewModel()) {
                         onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
                         onExportPdfClick = { storeId ->
                             navController.navigate(Screen.ReportPdf.createRoute(storeId))
+                        },
+                        onPrintInvoiceClick = { invoiceId ->
+                            navController.navigate(Screen.InvoicePdf.createRoute(invoiceId))
                         }
                     )
                 }
@@ -116,6 +120,14 @@ fun NavGraph(sessionViewModel: SessionViewModel = hiltViewModel()) {
                     arguments = listOf(androidx.navigation.navArgument("storeId") { type = androidx.navigation.NavType.StringType })
                 ) {
                     com.threesa.billing.presentation.reports.pdf.ReportPdfScreen(
+                        onBackClick = { navController.popBackStack() }
+                    )
+                }
+                composable(
+                    route = Screen.InvoicePdf.route,
+                    arguments = listOf(androidx.navigation.navArgument("invoiceId") { type = androidx.navigation.NavType.StringType })
+                ) {
+                    com.threesa.billing.presentation.reports.pdf.InvoicePdfScreen(
                         onBackClick = { navController.popBackStack() }
                     )
                 }
