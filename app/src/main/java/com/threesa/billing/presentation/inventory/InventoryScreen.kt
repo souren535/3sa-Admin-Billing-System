@@ -222,16 +222,7 @@ fun InventoryScreen(
                                 .background(SurfaceMuted)
                                 .padding(horizontal = 16.dp, vertical = 12.dp)
                         ) {
-                            Text("PRODUCT", fontSize = 13.sp, color = TextSecondary, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(2.5f))
-                            Text("STOCK", fontSize = 13.sp, color = TextSecondary, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(0.8f))
-                            Text(
-                                "STATUS",
-                                fontSize = 13.sp,
-                                color = TextSecondary,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.weight(1.2f),
-                                textAlign = TextAlign.End
-                            )
+                            Text("All Products", fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.Bold)
                         }
                         HorizontalDivider(color = BorderLight)
                         
